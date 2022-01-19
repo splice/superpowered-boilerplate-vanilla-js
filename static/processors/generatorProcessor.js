@@ -26,6 +26,10 @@ class ToneProcessor extends SuperpoweredWebAudio.AudioWorkletProcessor {
   // Consider this the process loop, called with the AudioContexts input and output buffers
   // You should not allocate memory here
   processAudio(inputBuffer, outputBuffer, buffersize, parameters) {
+    // Ensure the samplerate is in sync on every audio processing callback
+    this.generator.samplerate = this.samplerate;
+
+	  // Render the output buffers
     this.generator.generate(
       outputBuffer.pointer, // output, // Pointer to floating point numbers. 32-bit MONO output.
       buffersize * 2 // ? not true - we multiple this by two becuase .generate returns a monto signal whereas the outputBuffer is interleaved stereo.
