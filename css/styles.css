@@ -48,5 +48,5 @@ button:disabled {
 }
 
 #ready {
-  display: none;
+  /* display: none; */
 }

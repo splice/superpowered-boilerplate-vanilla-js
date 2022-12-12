@@ -1,17 +1,14 @@
-import SuperpoweredGlue from "../static/superpowered/SuperpoweredGlueModule.js";
-import { SuperpoweredWebAudio } from "../static/superpowered/SuperpoweredWebAudio.js";
+import  "../static/js/Superpowered.js";
 
+// The  location of the superpowered WebAssembly library
+// The  location of the processor from the browser to fetch
+const sineToneProcessorUrl = "/static/processors/generatorProcessor.js";
+const spUrl = "/static/js/Superpowered.js";
 // The sample rate we'd like our AudioContext to operate at
 const minimumSampleRate = 48000;
 
-// The  location of the superpowered WebAssembly library
-const superPoweredWasmLocation = "/static/superpowered/superpowered.wasm";
-// The  location of the processor from the browser to fetch
-const toneProcessorUrl = "/static/processors/generatorProcessor.js";
-
 class DemoApplication {
   constructor() {
-    this.superpowered = null;
     this.webaudioManager = null;
     this.boot();
   }
@@ -21,25 +18,32 @@ class DemoApplication {
     await this.loadProcessor();
   }
 
+  onMessageProcessorAudioScope = (message) => {
+    console.log(message);
+    // Here is where we receive serialisable message from the audio scope.
+    // We're sending our own ready event payload when the proeccesor is fully innitialised
+    if (message.event === "ready") {
+      document.getElementById("ready").disabled = false;
+    }
+  };
+
   async setupSuperpowered() {
-    this.superpowered = await SuperpoweredGlue.fetch(superPoweredWasmLocation);
-    this.superpowered.Initialize("ExampleLicenseKey-WillExpire-OnNextUpdate");
+    this.superpowered = await SuperpoweredGlue.Instantiate(
+      "ExampleLicenseKey-WillExpire-OnNextUpdate",
+      spUrl
+    );
+   
     this.webaudioManager = new SuperpoweredWebAudio(
       minimumSampleRate,
       this.superpowered
     );
+    console.log(`Running Superpowered v${this.superpowered.Version()}`);
   }
-
-  onMessageProcessorAudioScope = (message) => {
-    // Here is where we receive serialisable message from the audio scope.
-    // We're sending our own ready event payload when the proeccesor is fully innitialised
-    if (message.event === "ready") this.switchState();
-  };
 
   async loadProcessor() {
     // Now create the AudioWorkletNode, passing in the AudioWorkletProcessor url, it's registered name (defined inside the processor) and a callback then gets called when everything is up a ready
     this.generatorProcessorNode = await this.webaudioManager.createAudioNodeAsync(
-      toneProcessorUrl,
+      sineToneProcessorUrl,
       "ToneProcessor",
       this.onMessageProcessorAudioScope
     );
@@ -52,15 +56,13 @@ class DemoApplication {
   }
 
   resumeContext() {
+    console.log("resuming");
     this.webaudioManager.audioContext.resume();
-  }
-
-  switchState() {
-    document.getElementById("ready").style.display = "flex";
-    document.getElementById("loading").style.display = "none";
+    // document.getElementById("startButton").style.display = "none";
   }
 }
 
 const demoApp = new DemoApplication();
 
+// expose a function to the window so we can call it from the HTML markup
 window.resumeContext = demoApp.resumeContext.bind(demoApp);
